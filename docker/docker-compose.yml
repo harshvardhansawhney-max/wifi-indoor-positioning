@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=sqlite:///./app.db
+      - INFERENCE_DEVICE=cpu
+    volumes:
+      - ./backend:/app/backend
+      - ./models:/app/models
+      - ./datasets:/app/datasets
+    command: python main.py
+    networks:
+      - wifi-net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://backend:8000/api
+      - REACT_APP_WS_URL=ws://backend:8001
+    depends_on:
+      - backend
+    networks:
+      - wifi-net
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: wifi_positioning
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - wifi-net
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
+
+networks:
+  wifi-net:
+    driver: bridge
